@@ -1,0 +1,200 @@
+<!-- navbar.html -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navbar</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Kanit", sans-serif;
+      background: #fdf7f6;
+      font-size: 16px; /* ฟอนต์หลักใหญ่ขึ้น */
+    }
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #fff;
+      padding: 10px 20px;
+      border-bottom: 1px solid #ddd;
+      font-size: 16px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 20px; /* เว้นระหว่างโลโก้สองรูป */
+    }
+    .logo img {
+      height: 65px; /* โลโก้ใหญ่ขึ้น */
+      border-radius: 8px;
+    }
+    .logo .name-logo {
+      height: 60px; 
+      border-radius: 0;
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      position: relative;
+      margin-left: auto;
+      margin-right: 20px;
+    }
+    .search-box input {
+      width: 280px;
+      padding: 12px 40px 12px 15px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      outline: none;
+      font-size: 16px;
+    }
+    .search-box .icon {
+      position: absolute;
+      right: 15px;
+      color: #666;
+      font-size: 16px;
+      pointer-events: none;
+    }
+    .auth-links {
+      font-size: 16px;
+    }
+    .auth-links a {
+      text-decoration: none;
+      color: #333;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .auth-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* ---------------- Modal ---------------- */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 30px;
+      border-radius: 20px;
+      width: 500px; 
+      max-width: 90%;
+      text-align: center;
+      position: relative;
+      font-size: 20px;
+    }
+    .modal-content h2 {
+      margin-bottom: 20px;
+      font-size: 26px; 
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 15px;
+      margin: 12px 0;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+    .modal-content button {
+      background: linear-gradient(to right, #f7a8c5, #d7b2f9);
+      border: none;
+      padding: 14px;
+      width: 100%;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .modal-content button:hover {
+      opacity: 0.9;
+    }
+    .close {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      font-size: 24px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <img src="/img/logo.png" alt="โลโก้">
+      <img src="/img/nameLogo.png" alt="ชื่อโลโก้" class="name-logo">
+    </div>
+
+    <!-- <div class="search-box">
+      <input type="text" placeholder="ค้นหาหนังสือ">
+      <i class="fas fa-search icon"></i>
+    </div> -->
+
+    <div class="auth-links">
+      <a id="loginBtn">เข้าสู่ระบบ</a>/ 
+      <a id="registerBtn">สมัครสมาชิก</a>
+    </div>
+  </nav>
+
+  <!-- Modal เข้าสู่ระบบ -->
+<div id="loginModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('loginModal')">&times;</span>
+    <h2>เข้าสู่ระบบ</h2>
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button type="button" onclick="handleLogin()">เข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<!-- Modal สมัครสมาชิก -->
+<div id="registerModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('registerModal')">&times;</span>
+    <h2>สมัครสมาชิก</h2>
+    <input type="text" id="registerUsername" placeholder="ชื่อแอคเคาท์">
+    <input type="email" id="registerEmail" placeholder="Email">
+    <input type="password" id="registerPassword" placeholder="Password">
+    <input type="password" id="registerConfirm" placeholder="ยืนยัน Password">
+    <input type="number" id="registerAge" placeholder="อายุ">
+    <button type="button" onclick="handleRegister()">ยืนยัน</button>
+  </div>
+</div>
+
+  <!-- Script สำหรับเปิด/ปิด Modal -->
+  <script>
+    const loginBtn = document.getElementById("loginBtn");
+    const registerBtn = document.getElementById("registerBtn");
+
+    const loginModal = document.getElementById("loginModal");
+    const registerModal = document.getElementById("registerModal");
+
+    loginBtn.onclick = () => loginModal.style.display = "flex";
+    registerBtn.onclick = () => registerModal.style.display = "flex";
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+
+    // กดนอก popup แล้วปิด
+    window.onclick = function(event) {
+      if (event.target.classList.contains("modal")) {
+        event.target.style.display = "none";
+      }
+    }
+  </script>
+</body>
+</html>
