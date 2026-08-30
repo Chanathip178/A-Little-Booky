@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ทดลองอ่าน</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/navbar-account.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="/js/toast.js"></script>
+  <style>
+    /* ให้พื้นหลัง dark mode เหมือนหน้า Home เป๊ะๆ */
+    body, html {
+      font-family: "Kanit", sans-serif !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    body:not(.dark), html:not(.dark) body {
+      background: #fafafa !important;
+    }
+    body.dark, html.dark body {
+      background: #1e1e1e !important;
+      color: #e0e0e0 !important;
+    }
+
+    .prose {
+      font-family: "TH Sarabun New", "Noto Serif Thai", serif;
+      font-size: 1.25rem;
+      line-height: 2;
+      text-align: justify;
+      text-indent: 2em;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .prose p {
+      margin-bottom: 1.25em;
+    }
+
+    body.dark #novel-content {
+      background-color: oklch(27.724% 0.00185 286.031);
+      color: #ffffff;
+    }
+
+    body.dark #novel-title,
+    body.dark #novel-author {
+      color: #ffffff;
+    }
+
+    body.dark .text-gray-500 {
+      color: #ffffff !important;
+    }
+
+    body.dark #novel-content,
+    body.dark #novel-content * {
+      color: #ffffff !important;
+    }
+
+    body.dark #prev-chapter,
+    body.dark #next-chapter {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    body.dark #prev-chapter:hover,
+    body.dark #next-chapter:hover {
+      background-color: #e5e5e5 !important;
+    }
+  </style>
+</head>
+
+<body class="bg-[#fdf6f9] text-black transition-colors duration-300">
+
+  <div id="navbar-container"></div>
+
+  <section class="px-6 py-6 max-w-4xl mx-auto">
+    <h1 id="novel-title" class="text-3xl font-bold text-center mb-2 text-black"></h1>
+    <div id="novel-author" class="text-center text-gray-500 mb-4"></div>
+  </section>
+
+  <section class="px-6 py-6 max-w-6xl mx-auto">
+    <article class="prose max-w-none bg-white text-black p-8 rounded-2xl shadow-lg overflow-x-auto"
+      id="novel-content">
+    </article>
+
+    <div class="flex justify-between mt-6 gap-4">
+      <button id="prev-chapter"
+        class="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 rounded-full font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed">‹ ตอนก่อนหน้า</button>
+      <button id="next-chapter"
+        class="px-5 py-2.5 bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white rounded-full font-medium shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed">ตอนถัดไป ›</button>
+    </div>
+  </section>
+
+  <script>
+    fetch("/navbar-main")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar-container").innerHTML = data;
+        feather.replace();
+
+        // Dark Mode (ใช้ theme.js ที่ใช้ร่วมกันทุกหน้า เพื่อ sync ไอคอนให้ตรง)
+        if (window.applyTheme) window.applyTheme(localStorage.getItem("theme") || "light");
+
+        // Profile dropdown + ออกจากระบบ
+        if (window.initNavbarAccount) window.initNavbarAccount();
+        if (window.initBackButton) window.initBackButton('/detail?id=' + novelId);
+      });
+
+    const params = new URLSearchParams(window.location.search);
+    const novelId = Number(params.get('id'));
+
+    let chapters = [];
+    let currentChapter = 0;
+
+    function renderChapter(index) {
+      const contentDiv = document.getElementById("novel-content");
+      if (chapters.length > 0) {
+        const ch = chapters[index];
+        let title = ch.chapter;
+        if (index === chapters.length - 1) {
+          title += " (ตอนจบ)";
+        }
+
+        let html = `<h2 class="text-xl font-bold mt-6 mb-2">${title}</h2>`;
+        html += ch.content.split('\n').map(line => `<p>${line}</p>`).join('');
+        contentDiv.innerHTML = html;
+
+        const prevBtn = document.getElementById("prev-chapter");
+        const nextBtn = document.getElementById("next-chapter");
+
+        prevBtn.disabled = index === 0;
+
+        if (index === chapters.length - 1) {
+          nextBtn.innerText = "กลับสู่หน้าหลัก";
+          nextBtn.disabled = false;
+        } else {
+          nextBtn.innerText = "ตอนถัดไป";
+          nextBtn.disabled = false;
+        }
+      }
+    }
+
+    fetch("/api/shop/books")
+      .then(res => res.json())
+      .then(data => {
+        const novel = data.novels.find(n => n.id === novelId);
+        if (!novel) {
+          document.getElementById("novel-title").innerText = "ไม่พบนิยาย";
+          return;
+        }
+
+        // ตรวจสอบสิทธิ์ก่อนเข้าอ่าน
+        const user = JSON.parse(localStorage.getItem("user"));
+        const purchased = JSON.parse(localStorage.getItem("purchased")) || [];
+        const isPurchased = purchased.some(n => n.id === novel.id);
+        const isFree = novel.price === "Free" || novel.price === 0 || novel.price === "0";
+        if (!isFree && !isPurchased) {
+          showToast("คุณต้องซื้อก่อนจึงจะสามารถอ่านได้", "error");
+          setTimeout(() => { window.location.href = "/detail?id=" + novelId; }, 700);
+          return;
+        }
+
+        document.getElementById("novel-title").innerText = novel.title;
+        document.getElementById("novel-author").innerText = novel.author;
+
+        if (novel.content) {
+          document.getElementById("novel-content").innerHTML =
+            novel.content.split('\n').map(line => `<p>${line}</p>`).join('');
+          document.getElementById("prev-chapter").style.display = "none";
+          document.getElementById("next-chapter").style.display = "none";
+        } else if (novel.chapters) {
+          chapters = novel.chapters;
+          currentChapter = 0;
+          renderChapter(currentChapter);
+
+          document.getElementById("prev-chapter").addEventListener("click", () => {
+            if (currentChapter > 0) {
+              currentChapter--;
+              renderChapter(currentChapter);
+            }
+          });
+
+          document.getElementById("next-chapter").addEventListener("click", () => {
+            if (currentChapter < chapters.length - 1) {
+              currentChapter++;
+              renderChapter(currentChapter);
+            } else {
+              // เฉพาะตอนสุดท้าย แล้วกดปุ่ม → redirect
+              window.location.href = '/detail?id=' + novelId;
+            }
+          });
+        }
+      });
+  </script>
+</body>
+</html>

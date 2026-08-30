@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Writing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="/js/theme.js"></script>
+  <script src="/js/navbar-account.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="/js/toast.js"></script>
+  <style>
+    /* ใส่สไตล์ Dark Mode ถ้าจำเป็น เช่น background, สีข้อความ */
+    body, html {
+      font-family: "Kanit", sans-serif !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    body:not(.dark), html:not(.dark) body {
+      background: #fafafa !important;
+    }
+    body.dark, html.dark body {
+      background: #1e1e1e !important;
+      color: #e0e0e0 !important;
+    }
+
+    /* เปลี่ยนเส้นใต้หัวข้อ Writing เป็นสีขาวใน dark mode */
+    body.dark section>div.border-b-2 {
+      border-color: #fff;
+    }
+
+    body.dark input {
+      color: #000;
+    }
+  </style>
+</head>
+
+<body id="main-body" class="bg-pink-50 dark:bg-gray-900 dark:text-white transition-colors duration-300">
+
+  <div id="navbar-container"></div>
+
+  <!-- หัวข้อ -->
+  <section class="px-6 py-6">
+    <div class="relative max-w-4xl mx-auto border-b-2 border-gray-800 pb-2 flex items-center justify-center">
+      <h1 class="text-2xl font-bold font-serif text-center">Writing</h1>
+    </div>
+  </section>
+
+  <!-- รายการหนังสือ -->
+  <section class="max-w-4xl mx-auto px-6">
+    <h2 class="font-bold text-lg mb-4">รายการหนังสือ</h2>
+    <div id="book-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6"></div>
+  </section>
+
+  <script>
+    const currentPage = window.location.pathname;
+
+    // โหลด navbar
+    fetch("/navbar-main")
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("navbar-container").innerHTML = data;
+
+        // Active menu
+        const menuLinks = document.querySelectorAll(".menu a");
+        menuLinks.forEach(link => {
+          if (link.getAttribute("href") === currentPage) {
+            link.classList.add("active");
+          } else {
+            link.classList.remove("active");
+          }
+        });
+
+        // Profile dropdown + ออกจากระบบ (รวมศูนย์ไว้ที่ navbar-account.js ให้ทำงานเหมือนกันทุกหน้า)
+        if (window.initNavbarAccount) window.initNavbarAccount();
+        if (window.initBackButton) window.initBackButton('/home');
+
+        // หลัง navbar โหลดแล้ว sync theme (ใช้ theme.js ที่ใช้ร่วมกันทุกหน้า)
+        if (window.applyTheme) window.applyTheme(localStorage.getItem("theme") || "light");
+
+        // โหลด search.js หลังจาก navbar โหลดเสร็จ
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "js/search.js";
+        document.body.appendChild(script);
+
+        // โหลด chatbot.js
+          const s = document.createElement("script");
+          s.src = "/js/chatbot.js";
+          s.defer = true;
+          s.onload = () => {
+            if (window.bootChatbot) window.bootChatbot();
+          };
+          document.body.appendChild(s);
+      })
+      .catch(err => console.error("โหลด Navbar ไม่ได้:", err));
+
+    // โค้ดสำหรับ renderBooks: รวมหนังสือจากเซิร์ฟเวอร์ (MongoDB) + หนังสือเก่าที่เคยเก็บไว้ใน localStorage
+    document.addEventListener("DOMContentLoaded", async () => {
+      const bookList = document.getElementById("book-list");
+      const legacyBooks = JSON.parse(localStorage.getItem("myBooks") || "[]")
+        .map((b, i) => ({ ...b, source: "local", localIndex: i }));
+
+      let serverBooks = [];
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      if (user && user.id) {
+        try {
+          const res = await fetch(`/api/shop/mybooks?owner=${encodeURIComponent(user.id)}`);
+          const data = await res.json();
+          if (data.success) {
+            serverBooks = (data.novels || []).map(b => ({ ...b, source: "server" }));
+          }
+        } catch (err) {
+          console.error("โหลดหนังสือจากเซิร์ฟเวอร์ไม่สำเร็จ:", err);
+        }
+      }
+
+      let books = [...serverBooks, ...legacyBooks];
+
+      function renderBooks() {
+        bookList.innerHTML = "";
+
+        if (books.length === 0) {
+          bookList.innerHTML = `
+            <div class="w-40 h-52 flex items-center justify-center border-2 border-dashed border-gray-400 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                 onclick="window.location.href='/add-book'">
+              <span class="text-5xl font-bold text-gray-600 dark:text-gray-300">+</span>
+            </div>
+          `;
+        } else {
+          books.forEach((book, index) => {
+            const card = document.createElement("div");
+            card.className = "w-40 text-center relative";
+            card.innerHTML = `
+              <button class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow hover:bg-red-600 delete-btn" data-index="${index}">✕</button>
+              <img src="${book.cover || book.Image}" alt="book cover" class="w-full h-52 object-cover rounded-xl shadow">
+              <p class="mt-2 font-semibold text-gray-700 dark:text-gray-200 truncate">${book.title}</p>
+            `;
+            bookList.appendChild(card);
+          });
+
+          const addBtn = document.createElement("div");
+          addBtn.className = "w-40 h-52 flex items-center justify-center border-2 border-dashed border-gray-400 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition";
+          addBtn.innerHTML = `<span class="text-5xl font-bold text-gray-600 dark:text-gray-300">+</span>`;
+          addBtn.onclick = () => window.location.href = "/add-book";
+          bookList.appendChild(addBtn);
+
+          document.querySelectorAll(".delete-btn").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+              e.stopPropagation();
+              const index = parseInt(btn.getAttribute("data-index"), 10);
+              const book = books[index];
+
+              if (book.source === "server") {
+                try {
+                  await fetch(`/api/shop/books/${book.id}`, { method: "DELETE" });
+                } catch (err) {
+                  console.error(err);
+                  showToast("ลบหนังสือไม่สำเร็จ", "error");
+                  return;
+                }
+              } else {
+                const legacy = JSON.parse(localStorage.getItem("myBooks") || "[]");
+                legacy.splice(book.localIndex, 1);
+                localStorage.setItem("myBooks", JSON.stringify(legacy));
+              }
+
+              books.splice(index, 1);
+              renderBooks();
+            });
+          });
+        }
+      }
+
+      renderBooks();
+    });
+  </script>
+
+</body>
+
+</html>

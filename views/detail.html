@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>รายละเอียดนิยาย</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="/js/theme.js"></script>
+  <script src="/js/navbar-account.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="/js/toast.js"></script>
+  <script src="/js/account-sync.js"></script>
+  <style>
+    body {
+      font-family: "Kanit", sans-serif;
+      background: #fafafa;
+      margin: 0;
+      padding: 0;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background: #1e1e1e;
+      color: #e0e0e0;
+    }
+
+    body.dark .container {
+      background: #2a2a2a;
+      color: #e0e0e0;
+    }
+
+    body.dark .btn-sample {
+      background: #444;
+      color: #fff;
+    }
+
+    body.dark .btn-buy {
+      background: #ff69b4;
+    }
+
+    body.dark .container,
+    body.dark .container * {
+      color: #ffffff !important;
+    }
+
+    body.dark .heart.active {
+      color: red !important;
+    }
+
+    body.dark .price {
+      color: #c71585 !important;
+    }
+
+    #navbar-container {
+      margin-bottom: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 32px;
+      background: #fff;
+      border-radius: 22px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .08);
+      position: relative;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .heart {
+      font-size: 20px;
+      color: #bbb;
+      cursor: pointer;
+      transition: 0.2s;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f4f4f4;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+
+    .heart:hover {
+      background: #ffe4ef;
+      transform: scale(1.08);
+    }
+
+    .heart.active {
+      color: red;
+    }
+
+    body.dark .heart {
+      background: #333;
+    }
+
+    body.dark .heart:hover {
+      background: #4a2a35;
+    }
+
+    .book-detail {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+    }
+
+    .book-detail img {
+      width: 280px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+      transition: transform 0.3s ease;
+    }
+
+    .book-detail img:hover {
+      transform: translateY(-4px);
+    }
+
+    .info {
+      flex: 1;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .meta {
+      margin: 6px 0;
+      font-size: 20px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .description {
+      margin: 15px 0;
+      line-height: 1.8;
+      color: #444;
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .price {
+      margin-top: 15px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #c71585;
+    }
+
+    .actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 13px 20px;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, .12);
+    }
+
+    .btn-sample {
+      background: #e9ecef;
+      color: #333;
+    }
+
+    .btn-sample:hover:not(:disabled) {
+      background: #dfe3e6;
+    }
+
+    .btn-sample:disabled {
+      background: #ccc;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    .btn-buy {
+      background: linear-gradient(135deg, #d633f9, #c71585);
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .book-detail {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .info {
+        text-align: center;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <div class="container" id="detail-container">
+    <h2>กำลังโหลดข้อมูล...</h2>
+  </div>
+
+  <script>
+    fetch("/navbar-main")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar-container").innerHTML = data;
+
+        // Dark mode (ใช้ theme.js ที่ใช้ร่วมกันทุกหน้า เพื่อ sync ไอคอนให้ตรง)
+        if (window.applyTheme) window.applyTheme(localStorage.getItem("theme") || "light");
+
+        // Profile dropdown + ออกจากระบบ
+        if (window.initNavbarAccount) window.initNavbarAccount();
+        if (window.initBackButton) window.initBackButton('/home');
+
+        // โหลด search.js
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "js/search.js";
+        document.body.appendChild(script);
+
+        // โหลด chatbot.js
+        const s = document.createElement("script");
+        s.src = "/js/chatbot.js";
+        s.defer = true;
+        s.onload = () => {
+          if (window.bootChatbot) window.bootChatbot();
+        };
+        document.body.appendChild(s);
+      });
+
+    const params = new URLSearchParams(window.location.search);
+    const novelId = parseInt(params.get("id"));
+
+    fetch("/api/shop/books")
+      .then(res => res.json())
+      .then(data => {
+        const novel = data.novels.find(n => n.id === novelId);
+        if (!novel) {
+          document.getElementById("detail-container").innerHTML = "<h2>ไม่พบนิยาย</h2>";
+          return;
+        }
+
+        const user = JSON.parse(localStorage.getItem("user"));
+        let favs = JSON.parse(localStorage.getItem("favorites")) || [];
+        let isFav = favs.some(n => n.id === novel.id);
+        let purchased = JSON.parse(localStorage.getItem("purchased")) || [];
+        let isPurchased = purchased.some(n => n.id === novel.id);
+        let isFree = novel.price === "Free" || novel.price === 0 || novel.price === "0";
+        let canRead = isFree || isPurchased;
+
+        document.getElementById("detail-container").innerHTML = `
+          <i class="fa-regular fa-heart heart ${isFav ? 'active' : ''}" id="favBtn"></i>
+          <div class="book-detail">
+            <img src="${novel.Image}" alt="${novel.title}">
+            <div class="info">
+              <div>
+                <div class="title">${novel.title}</div>
+                <div class="meta"><i class="fa-solid fa-user"></i> ${novel.author}</div>
+                <div class="meta"><i class="fa-solid fa-tag"></i> ${novel.category}</div>
+                <div class="description">${novel.description}</div>
+              </div>
+              <div>
+                <div class="price">${isFree ? "ฟรี" : `${novel.price} บาท`}</div>
+                <div class="actions">
+                  <button class="btn btn-sample" id="sampleBtn" 
+                    ${canRead ? "" : "disabled title='ต้องซื้อก่อนจึงจะอ่านได้'"}>📖 อ่าน</button>
+                  ${!canRead && !isFree ? 
+                    `<button class="btn btn-buy" id="addToCartBtn">🛒 เพิ่มลงตะกร้า</button>` 
+                    : ""}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Favorite toggle
+        document.getElementById("favBtn").addEventListener("click", () => {
+          favs = JSON.parse(localStorage.getItem("favorites")) || [];
+          if (favs.find(n => n.id === novel.id)) {
+            favs = favs.filter(n => n.id !== novel.id);
+            document.getElementById("favBtn").classList.remove("active");
+            if (window.AccountSync) window.AccountSync.syncFavoriteRemove(novel.id);
+          } else {
+            favs.push(novel);
+            document.getElementById("favBtn").classList.add("active");
+            if (window.AccountSync) window.AccountSync.syncFavoriteAdd(novel.id);
+          }
+          localStorage.setItem("favorites", JSON.stringify(favs));
+        });
+
+        // ปุ่มอ่าน
+        document.getElementById("sampleBtn").addEventListener("click", () => {
+          if (!user) {
+            showToast("กรุณาเข้าสู่ระบบก่อน", "error");
+            setTimeout(() => { window.location.href = "/pre-login"; }, 700);
+            return;
+          }
+
+          if (!canRead) {
+            showToast("คุณต้องซื้อก่อนจึงจะสามารถอ่านนิยายนี้ได้", "error");
+            return;
+          }
+
+          if (novel.category === "อีโรติก") {
+            fetch(`/api/shop/check-age/${user.id}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.over18) goToSample(novel);
+                else showToast("คุณอายุไม่ถึง 18+ ไม่สามารถอ่านนิยายนี้ได้", "error");
+              })
+              .catch(err => {
+                console.error(err);
+                showToast("เกิดข้อผิดพลาดในการตรวจสอบอายุ", "error");
+              });
+          } else {
+            goToSample(novel);
+          }
+        });
+
+        // ปุ่มเพิ่มตะกร้า
+        const addToCartBtn = document.getElementById("addToCartBtn");
+        if (addToCartBtn) {
+          addToCartBtn.addEventListener("click", () => {
+            if (!user) {
+              showToast("กรุณาเข้าสู่ระบบก่อน", "error");
+              setTimeout(() => { window.location.href = "/pre-login"; }, 700);
+              return;
+            }
+            addToCart(novel);
+          });
+        }
+
+        // อ่านตัวอย่าง
+        function goToSample(novel) {
+          let sampleHistory = JSON.parse(localStorage.getItem("sampleHistory")) || [];
+          const sampleData = {
+            id: novel.id,
+            title: novel.title,
+            author: novel.author,
+            Image: novel.Image,
+            content: novel.sampleContent || "<p>ไม่มีเนื้อเรื่องตัวอย่าง</p>"
+          };
+          sampleHistory = sampleHistory.filter(n => n.id !== novel.id);
+          sampleHistory.push(sampleData);
+          localStorage.setItem("sampleHistory", JSON.stringify(sampleHistory));
+          window.location.href = `/content?id=${novel.id}`;
+        }
+
+        // เพิ่มลงตะกร้า
+        function addToCart(novel) {
+          let cart = JSON.parse(localStorage.getItem("cart")) || [];
+          const exist = cart.find(item => item.id === novel.id);
+          if (exist) exist.qty += 1;
+          else cart.push({ ...novel, qty: 1 });
+          localStorage.setItem("cart", JSON.stringify(cart));
+          if (window.AccountSync) window.AccountSync.syncCartAdd(novel.id, 1);
+          showToast("เพิ่มลงตะกร้าเรียบร้อยแล้ว!", "success");
+        }
+
+      })
+      .catch(err => {
+        console.error("โหลด JSON ไม่ได้:", err);
+        document.getElementById("detail-container").innerHTML = "<h2>เกิดข้อผิดพลาดในการโหลดข้อมูล</h2>";
+      });
+  </script>
+</body>
+</html>

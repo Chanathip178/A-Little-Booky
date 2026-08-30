@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Reading</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/navbar-account.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="/js/toast.js"></script>
+  <style>
+    /* ให้พื้นหลัง dark mode เหมือนหน้า Home เป๊ะๆ ไม่ว่า Tailwind dark: จะโหลดทันเวลาหรือไม่ */
+    body, html {
+      font-family: "Kanit", sans-serif !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    body:not(.dark), html:not(.dark) body {
+      background: #fafafa !important;
+    }
+    body.dark, html.dark body {
+      background: #1e1e1e !important;
+      color: #e0e0e0 !important;
+    }
+
+    /* ไอคอน book & clock stroke สีขาวใน dark mode */
+    body.dark #bookshelf-icon svg,
+    body.dark #history-icon svg {
+      stroke: white !important;
+    }
+
+    /* ข้อความ ชั้นหนังสือของคุณ เป็นสีขาวใน dark mode */
+    body.dark #bookshelf-content h2 {
+      color: white !important;
+    }
+
+    /* ข้อความ ประวัติการทดลองอ่าน เป็นสีขาวใน dark mode */
+    body.dark #history-content h2 {
+      color: white !important;
+    }
+
+    /* เปลี่ยนเส้นใต้ (border-b-2) จากสีเทาเป็นสีน้ำเงินในโหมดปกติ */
+    #content-section>section>div:first-child>div.relative.border-b-2 {
+      border-color: #3b82f6;
+    }
+
+    /* ปรับ border สีตรง div ที่มี class .border-b-2 */
+    .border-b-2 {
+      border-color: #3b82f6;
+    }
+
+    /* เปลี่ยนเส้นใต้ใน dark mode เป็นสีขาว */
+    body.dark .border-b-2 {
+      border-color: white !important;
+    }
+
+    /* Dark mode: การ์ดพื้น #2a2a2a, ตัวอักษรขาว */
+    body.dark .card-dark {
+      background-color: #2a2a2a !important;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+      color: white !important;
+    }
+
+    body.dark .card-dark * {
+      color: white !important;
+    }
+
+    /* Light mode: การ์ดพื้นขาว ตัวอักษรดำ (default) */
+    .card-dark {
+      background-color: white;
+      color: black;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-dark * {
+      color: inherit;
+    }
+  </style>
+</head>
+
+<body id="main-body" class="bg-[#fdf6f9] dark:bg-gray-900 dark:text-white transition-colors duration-300">
+
+  <!-- Navbar -->
+  <div id="navbar-container"></div>
+
+  <!-- Section Title + Icons -->
+  <section class="px-6 py-6">
+    <div class="relative max-w-4xl mx-auto border-b-2 border-gray-800 pb-2 flex items-center justify-center">
+      <h1 id="page-title" class="text-2xl font-bold font-serif text-center">
+        Reading
+      </h1>
+
+      <!-- ไอคอน -->
+      <div class="absolute right-0 flex space-x-4">
+        <i id="bookshelf-icon" data-feather="book"
+          class="w-6 h-6 cursor-pointer text-gray-500 hover:text-black transition"></i>
+        <i id="history-icon" data-feather="clock"
+          class="w-6 h-6 cursor-pointer text-gray-500 hover:text-black transition"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section Content -->
+  <section id="content-section" class="px-6 py-6 max-w-4xl mx-auto">
+    <!-- ชั้นหนังสือ (เคยกดเข้าไปดู) -->
+    <div id="bookshelf-content">
+      <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+        📚 ชั้นหนังสือของคุณ
+      </h2>
+      <div id="bookshelf-list"></div>
+    </div>
+
+    <!-- ประวัติการทดลองอ่าน -->
+    <div id="history-content" class="hidden">
+      <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+        ⏳ ประวัติการอ่าน
+      </h2>
+      <div id="history-list"></div>
+    </div>
+  </section>
+
+  <!-- Modal ยืนยันอายุ -->
+  <div id="ageModal" class="modal fixed inset-0 bg-black/50 flex justify-center items-center" style="display:none;">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl text-center">
+      <p class="text-lg mb-4 text-gray-800 dark:text-gray-200">คุณอายุเกิน 18+ ไหม?</p>
+      <div class="flex justify-center gap-4">
+        <button onclick="checkAge(true)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">ใช่</button>
+        <button onclick="checkAge(false)"
+          class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">ไม่ใช่</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const currentPage = window.location.pathname;
+
+    fetch("/navbar-main")
+      .then((response) => response.text())
+      .then((data) => {
+        document.getElementById("navbar-container").innerHTML = data;
+
+        // --- active menu ---
+        const menuLinks = document.querySelectorAll(".menu a");
+        menuLinks.forEach((link) => {
+          if (link.getAttribute("href") === currentPage) link.classList.add("active");
+          else link.classList.remove("active");
+        });
+
+        // --- profile dropdown + ออกจากระบบ (รวมศูนย์ไว้ที่ navbar-account.js ให้ทำงานเหมือนกันทุกหน้า) ---
+        if (window.initNavbarAccount) window.initNavbarAccount();
+        if (window.initBackButton) window.initBackButton('/home');
+
+        // ✅ sync dark mode (ใช้ theme.js ที่ใช้ร่วมกันทุกหน้า ให้ทำงานเหมือนหน้า Home)
+        if (window.applyTheme) window.applyTheme(localStorage.getItem("theme") || "light");
+
+        // Feather icons
+        feather.replace();
+
+        // --- bookshelf / history toggle ---
+        const pageTitle = document.getElementById("page-title");
+        const bookshelfIcon = document.getElementById("bookshelf-icon");
+        const historyIcon = document.getElementById("history-icon");
+        const bookshelfContent = document.getElementById("bookshelf-content");
+        const historyContent = document.getElementById("history-content");
+
+        function timeAgo(timestamp) {
+          const diff = Math.floor((Date.now() - timestamp) / 1000);
+          if (diff < 60) return `เข้าชมล่าสุด ${diff} วินาทีที่แล้ว`;
+          if (diff < 3600) return `เข้าชมล่าสุด ${Math.floor(diff / 60)} นาทีที่แล้ว`;
+          if (diff < 86400) return `เข้าชมล่าสุด ${Math.floor(diff / 3600)} ชั่วโมงที่แล้ว`;
+          return `เข้าชมล่าสุด ${Math.floor(diff / 86400)} วันที่แล้ว`;
+        }
+
+        function showBookshelf() {
+          pageTitle.innerText = "Reading";
+          bookshelfContent.classList.remove("hidden");
+          historyContent.classList.add("hidden");
+          bookshelfIcon.classList.add("text-black");
+          bookshelfIcon.classList.remove("text-gray-500");
+          historyIcon.classList.add("text-gray-500");
+          historyIcon.classList.remove("text-black");
+
+          loadReadingHistory();
+        }
+
+        function showHistory() {
+          pageTitle.innerText = "Reading";
+          historyContent.classList.remove("hidden");
+          bookshelfContent.classList.add("hidden");
+          historyIcon.classList.add("text-black");
+          historyIcon.classList.remove("text-gray-500");
+          bookshelfIcon.classList.add("text-gray-500");
+          bookshelfIcon.classList.remove("text-black");
+
+          loadSampleHistory();
+        }
+
+        bookshelfIcon.addEventListener("click", showBookshelf);
+        historyIcon.addEventListener("click", showHistory);
+
+        showBookshelf(); // เริ่มต้นที่ bookshelf
+
+        // โหลดอันที่เคยกดเข้าไปดู (readingHistory)
+        function loadReadingHistory() {
+          const bookshelfList = document.getElementById("bookshelf-list");
+          bookshelfList.innerHTML = "";
+          let history = JSON.parse(localStorage.getItem("readingHistory")) || [];
+
+          if (history.length === 0) {
+            bookshelfList.innerHTML = `<div class="flex items-center justify-center h-64"><p class="text-gray-500 text-lg">ยังไม่มีรายการในชั้นหนังสือ</p></div>`;
+            return;
+          }
+
+          const cardGrid = document.createElement("div");
+          cardGrid.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4";
+
+          history.forEach((novel) => {
+            const card = document.createElement("div");
+            card.className = "card-dark rounded-xl overflow-hidden shadow-md hover:shadow-lg transition relative";
+            card.innerHTML = `
+              <img src="${novel.Image}" alt="${novel.title}" class="w-full h-44 object-cover cursor-pointer">
+              <div class="p-2 text-center">
+                <div class="font-bold text-sm cursor-pointer">${novel.title}</div>
+                <div class="text-gray-500 dark:text-gray-300 text-xs">${novel.author}</div>
+              </div>
+              <button class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition">ลบ</button>
+            `;
+
+            // ไปหน้า detail
+            card.querySelector("img").addEventListener("click", () => {
+              if (novel.category === "อีโรติก") novel.is18 = true;
+              localStorage.setItem("currentNovel", JSON.stringify(novel));
+
+              if (novel.is18) {
+                document.getElementById("ageModal").style.display = "flex";
+              } else {
+                window.location.href = `/detail?id=${novel.id}`;
+              }
+            });
+            card.querySelector(".font-bold").addEventListener("click", () => {
+              if (novel.category === "อีโรติก") novel.is18 = true;
+              localStorage.setItem("currentNovel", JSON.stringify(novel));
+
+              if (novel.is18) {
+                document.getElementById("ageModal").style.display = "flex";
+              } else {
+                window.location.href = `/detail?id=${novel.id}`;
+              }
+            });
+
+            // ลบออกจาก bookshelf
+            card.querySelector("button").addEventListener("click", (e) => {
+              e.stopPropagation();
+              history = history.filter((n) => n.id !== novel.id);
+              localStorage.setItem("readingHistory", JSON.stringify(history));
+              loadReadingHistory();
+            });
+
+            cardGrid.appendChild(card);
+          });
+
+          bookshelfList.appendChild(cardGrid);
+        }
+
+        // โหลดอันที่ทดลองอ่าน (sampleHistory)
+        function loadSampleHistory() {
+          const historyList = document.getElementById("history-list");
+          historyList.innerHTML = "";
+          let samples = JSON.parse(localStorage.getItem("sampleHistory")) || [];
+
+          if (samples.length === 0) {
+            historyList.innerHTML = `<div class="flex items-center justify-center h-64"><p class="text-gray-500 text-lg">ยังไม่มีการทดลองอ่าน</p></div>`;
+            return;
+          }
+
+          const cardGrid = document.createElement("div");
+          cardGrid.className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4";
+
+          samples.forEach((novel) => {
+            if (!novel.Image && novel.image) novel.Image = novel.image;
+
+            const card = document.createElement("div");
+            card.className = "card-dark rounded-xl overflow-hidden shadow-md hover:shadow-lg transition relative";
+            card.innerHTML = `
+              <img src="${novel.Image}" alt="${novel.title}" class="w-full h-44 object-cover cursor-pointer">
+              <div class="p-2 text-center">
+                <div class="font-bold text-sm cursor-pointer">${novel.title}</div>
+                <div class="text-gray-500 dark:text-gray-300 text-xs">${novel.author}</div>
+                <div class="text-gray-400 text-xs italic mt-1">${timeAgo(novel.lastRead || Date.now())}</div>
+              </div>
+              <button class="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600 transition">ลบ</button>
+            `;
+
+            // ไปหน้า detail
+            card.querySelector("img").addEventListener("click", () => {
+              if (novel.category === "18+") novel.is18 = true;
+              localStorage.setItem("currentNovel", JSON.stringify(novel));
+              if (novel.is18) document.getElementById("ageModal").style.display = "flex";
+              else window.location.href = `/detail?id=${novel.id}`;
+            });
+            card.querySelector(".font-bold").addEventListener("click", () => {
+              if (novel.category === "18+") novel.is18 = true;
+              localStorage.setItem("currentNovel", JSON.stringify(novel));
+              if (novel.is18) document.getElementById("ageModal").style.display = "flex";
+              else window.location.href = `/detail?id=${novel.id}`;
+            });
+
+            // ลบออกจาก history
+            card.querySelector("button").addEventListener("click", (e) => {
+              e.stopPropagation();
+              samples = samples.filter((n) => n.id !== novel.id);
+              localStorage.setItem("sampleHistory", JSON.stringify(samples));
+              loadSampleHistory();
+            });
+
+            cardGrid.appendChild(card);
+          });
+
+          historyList.appendChild(cardGrid);
+        }
+
+        // โหลด search.js หลัง navbar โหลด
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "js/search.js";
+        document.body.appendChild(script);
+
+        // โหลด chatbot.js
+          const s = document.createElement("script");
+          s.src = "/js/chatbot.js";
+          s.defer = true;
+          s.onload = () => {
+            if (window.bootChatbot) window.bootChatbot();
+          };
+          document.body.appendChild(s);
+
+      })
+      .catch((err) => console.error("โหลด Navbar ไม่ได้:", err));
+
+    // 18+ Age check
+    function checkAge(answer) {
+      const ageModal = document.getElementById("ageModal");
+      const novel = JSON.parse(localStorage.getItem("currentNovel"));
+
+      // ปิด modal ก่อนทำ action อื่น
+      ageModal.style.display = "none";
+
+      if (!answer) {
+        showToast("คุณไม่สามารถอ่านนิยาย อีโรติก ได้", "error");
+        setTimeout(() => { window.location.href = "/home"; }, 700);
+        return;
+      }
+
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user) {
+        showToast("กรุณาเข้าสู่ระบบก่อน", "error");
+        setTimeout(() => { window.location.href = "/pre-login"; }, 700);
+        return;
+      }
+
+      // เช็กอายุจาก database จริง
+      fetch(`/api/shop/check-age/${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.over18) {
+            // อายุจริง >= 18 → ไปหน้า detail
+            if (novel) window.location.href = `/detail?id=${novel.id}`;
+          } else {
+            showToast("คุณอายุไม่ถึง 18+ ไม่สามารถอ่านนิยายนี้ได้", "error");
+            setTimeout(() => { window.location.href = "/home"; }, 700);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showToast("เกิดข้อผิดพลาดในการตรวจสอบอายุ", "error");
+          setTimeout(() => { window.location.href = "/home"; }, 700);
+        });
+    }
+  </script>
+</body>
+
+</html>

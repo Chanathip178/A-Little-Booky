@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Payment</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/navbar-account.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="/js/toast.js"></script>
+  <script src="/js/account-sync.js"></script>
+  <style>
+    /* ให้พื้นหลัง dark mode เหมือนหน้า Home เป๊ะๆ */
+    body, html {
+      font-family: "Kanit", sans-serif !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    body:not(.dark), html:not(.dark) body {
+      background: #fafafa !important;
+    }
+    body.dark, html.dark body {
+      background: #1e1e1e !important;
+      color: #e0e0e0 !important;
+    }
+
+    body.dark h1 {
+      color: white !important;
+    }
+
+    body.dark input {
+      color: #000;
+    }
+  </style>
+</head>
+
+<body class="bg-[#fdf6f9] dark:bg-gray-900">
+  <div id="navbar-container"></div>
+
+  <section class="px-6 py-6">
+    <div class="relative max-w-4xl mx-auto border-b-2 border-gray-300 pb-2 flex items-center justify-center">
+      <h1 class="text-2xl font-bold font-serif text-center text-gray-900 dark:text-gray-900">ชำระเงิน</h1>
+    </div>
+  </section>
+
+  <div class="max-w-5xl mx-auto px-6 mt-6 grid grid-cols-1 md:grid-cols-2 gap-10">
+    <!-- ช่องทางการชำระเงิน -->
+    <div class="space-y-4">
+      <label class="flex items-center space-x-4 border p-4 rounded-xl shadow bg-white cursor-pointer dark:bg-gray-800">
+        <input type="radio" name="payment" value="promptpay" />
+        <span class="text-gray-900 dark:text-gray-900">โอนผ่านพร้อมเพย์/บัญชีธนาคาร</span>
+        <img src="img/promt-pay-logo.png" class="h-12 ml-auto" />
+      </label>
+
+      <label class="flex items-center space-x-4 border p-4 rounded-xl shadow bg-white cursor-pointer dark:bg-gray-800">
+        <input type="radio" name="payment" value="qr" />
+        <span class="text-gray-900 dark:text-gray-900">สแกน QR พร้อมเพย์</span>
+        <img src="img/promt-pay-logo.png" class="h-12 ml-auto" />
+      </label>
+
+      <label class="flex items-center space-x-4 border p-4 rounded-xl shadow bg-white cursor-pointer dark:bg-gray-800">
+        <input type="radio" name="payment" value="truemoney" />
+        <span class="text-gray-900 dark:text-gray-900">TrueMoney Wallet</span>
+        <img src="img/truemoney.png" class="h-12 ml-auto" />
+      </label>
+    </div>
+
+    <!-- รายละเอียดสินค้า -->
+    <div class="bg-white p-6 rounded-xl shadow border space-y-4 dark:bg-gray-800">
+      <h2 class="text-xl font-bold mb-2 text-gray-900 dark:text-gray-900">รายการสินค้า:</h2>
+      <ul id="itemList" class="space-y-2 border-b pb-4"></ul>
+
+      <div class="space-y-2 text-gray-900 dark:text-gray-900">
+        <p>ราคารวม: <span id="totalPrice" class="float-right font-medium">฿0 บาท</span></p>
+        <p>ส่วนลด (10%): <span id="discount" class="float-right text-red-500 dark:text-red-500">0 บาท</span></p>
+        <hr />
+        <p class="font-bold text-lg">ยอดชำระทั้งหมด: <span id="final" class="float-right">฿0 บาท</span></p>
+      </div>
+
+      <div class="flex justify-center mt-6">
+        <button id="payBtn" class="bg-pink-300 text-black px-10 py-2 rounded-xl">ชำระเงิน</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // โหลด Navbar
+    fetch("/navbar-main")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar-container").innerHTML = data;
+
+        // Active menu
+        const currentPage = window.location.pathname;
+        document.querySelectorAll(".menu a").forEach(link => {
+          if (link.getAttribute("href") === currentPage) {
+            link.classList.add("active");
+          } else {
+            link.classList.remove("active");
+          }
+        });
+
+        // Profile dropdown + ออกจากระบบ (รวมศูนย์ไว้ที่ navbar-account.js ให้ทำงานเหมือนกันทุกหน้า)
+        if (window.initNavbarAccount) window.initNavbarAccount();
+        if (window.initBackButton) window.initBackButton('/cart');
+
+        // Dark mode (ใช้ theme.js ที่ใช้ร่วมกันทุกหน้า เพื่อ sync ไอคอนให้ตรง)
+        if (window.applyTheme) window.applyTheme(localStorage.getItem("theme") || "light");
+
+        // โหลด search.js หลัง navbar โหลด
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "js/search.js";
+        document.body.appendChild(script);
+
+        // โหลด chatbot.js
+          const s = document.createElement("script");
+          s.src = "/js/chatbot.js";
+          s.defer = true;
+          s.onload = () => {
+            if (window.bootChatbot) window.bootChatbot();
+          };
+          document.body.appendChild(s);
+      });
+
+    // โหลดสินค้าจาก selectedForPayment
+    const cart = JSON.parse(localStorage.getItem("selectedForPayment")) || [];
+    const itemList = document.getElementById("itemList");
+    let total = 0;
+
+    itemList.innerHTML = "";
+
+    cart.forEach(item => {
+      const qty = item.qty || 1;
+      const price = item.price === "Free" ? 0 : parseFloat(item.price);
+      const itemTotal = price * qty;
+      total += itemTotal;
+
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <div class="flex justify-between items-center border-b pb-2">
+          <div class="font-medium text-gray-900 dark:text-gray-900">${item.title} <span class="text-sm text-gray-900 dark:text-gray-900">× ${qty}</span></div>
+          <div class="text-gray-900 dark:text-gray-900">${price === 0 ? "ฟรี" : `฿${itemTotal} บาท`}</div>
+        </div>
+      `;
+      itemList.appendChild(li);
+    });
+
+    const discount = total > 200 ? Math.floor(total * 0.1) : 0;
+    const final = total - discount;
+
+    document.getElementById("totalPrice").innerText = `฿${total} บาท`;
+    document.getElementById("discount").innerText = discount > 0 ? `-฿${discount} บาท` : "0 บาท";
+    document.getElementById("final").innerText = `฿${final} บาท`;
+
+    // ปุ่มชำระเงิน
+    document.getElementById("payBtn").addEventListener("click", async () => {
+      const selectedPayment = document.querySelector('input[name="payment"]:checked');
+      if (!selectedPayment) {
+        showToast("กรุณาเลือกช่องทางการชำระเงินก่อนค่ะ", "error");
+        return;
+      }
+
+      const payBtnEl = document.getElementById("payBtn");
+      payBtnEl.disabled = true;
+
+      // เพิ่มรายการซื้อแล้วลง localStorage
+      const selected = JSON.parse(localStorage.getItem("selectedForPayment")) || [];
+      let purchased = JSON.parse(localStorage.getItem("purchased")) || [];
+
+      selected.forEach(item => {
+        if (!purchased.some(p => p.id === item.id)) {
+          purchased.push({ id: item.id, title: item.title });
+        }
+      });
+
+      localStorage.setItem("purchased", JSON.stringify(purchased));
+
+      // ลบออกจาก cart
+      const originalCart = JSON.parse(localStorage.getItem("cart")) || [];
+      const remaining = originalCart.filter(item =>
+        !selected.some(sel => sel.id === item.id)
+      );
+      localStorage.setItem("cart", JSON.stringify(remaining));
+      localStorage.removeItem("selectedForPayment");
+
+      // บันทึกการซื้อ + เอาออกจากตะกร้าฝั่งบัญชีเซิร์ฟเวอร์ด้วย (sync ข้ามอุปกรณ์)
+      // รอให้ request เหล่านี้จบก่อนค่อย redirect กัน request โดนตัดจบก่อนเวลา (race condition)
+      const currentUser = JSON.parse(localStorage.getItem("user") || "null");
+      if (currentUser && currentUser.id) {
+        const syncPromises = selected.flatMap(item => [
+          fetch(`/api/shop/buy/${item.id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: currentUser.id }),
+          }).catch(err => console.error("buy sync error:", err)),
+          fetch(`/api/shop/cart/${currentUser.id}/${item.id}`, { method: "DELETE" }).catch(
+            err => console.error("cart sync error:", err)
+          ),
+        ]);
+        // กัน request ค้างนานเกินไปด้วย timeout สำรอง 3 วินาที
+        await Promise.race([
+          Promise.allSettled(syncPromises),
+          new Promise(resolve => setTimeout(resolve, 3000)),
+        ]);
+      }
+
+      showToast(`ชำระเงินเรียบร้อยด้วยช่องทาง: ${selectedPayment.value} ขอบคุณค่ะ`, "success");
+      setTimeout(() => {
+        window.location.href = "/home";
+      }, 700);
+    });
+  </script>
+</body>
+
+</html>

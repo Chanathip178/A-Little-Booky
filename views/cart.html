@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Cart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/navbar-account.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="/js/toast.js"></script>
+  <script src="/js/account-sync.js"></script>
+  <style>
+    body, html {
+      font-family: "Kanit", sans-serif !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    body:not(.dark), html:not(.dark) body {
+      background: #fafafa !important;
+    }
+
+    /* Dark mode: พื้นหลังทั้งหน้า */
+    body.dark, html.dark body {
+      background-color: #1e1e1e !important;
+      color: #e0e0e0 !important;
+    }
+
+    /* Dark mode: กล่องสินค้าใน cart */
+    body.dark #cart-container div {
+      background-color: #2a2a2a;
+      color: #ffffff;
+      border-color: #615f5f; /* เส้นขอบกล่องสินค้าเป็นขาว */
+    }
+
+    /* Dark mode: หัวข้อ */
+    body.dark h1 {
+      color: #ffffff;
+    }
+
+    /* Dark mode: ราคาสินค้า */
+    body.dark #cart-container div p {
+      color: #ffffff !important;
+    }
+
+    /* Dark mode: ปุ่ม */
+    body.dark button {
+      background-color: #444;
+      color: #fff;
+    }
+
+    body.dark button:hover {
+      background-color: #666;
+    }
+
+    /* Dark mode: เส้นขอบใต้หัวข้อ (ตะกร้าสินค้า) */
+    body.dark section > div.border-b-2 {
+      border-color: #fff;
+    }
+
+    body.dark input {
+    color: #000;
+    }
+  </style>
+</head>
+
+<body class="bg-white text-black transition-colors duration-300">
+  <div id="navbar-container"></div>
+
+  <section class="px-6 py-6">
+    <div
+      class="relative max-w-4xl mx-auto border-b-2 border-gray-800 pb-2 flex items-center justify-center"
+    >
+      <h1 class="text-2xl font-bold font-serif text-center">ตะกร้าสินค้า</h1>
+    </div>
+  </section>
+
+  <div id="cart-container" class="max-w-3xl mx-auto px-6 space-y-6 mt-6"></div>
+
+  <!-- ปุ่มชำระเงิน -->
+  <div id="checkout-btn-wrap" class="flex justify-center mt-8">
+    <button
+      onclick="goToCheckout()"
+      class="bg-pink-500 hover:bg-pink-600 px-10 py-2.5 rounded-full text-white font-bold shadow-md hover:shadow-lg transition-all duration-200"
+    >
+      ชำระเงิน
+    </button>
+  </div>
+
+  <script>
+    const currentPage = window.location.pathname;
+
+    // โหลด navbar
+    fetch("/navbar-main")
+      .then((response) => response.text())
+      .then((data) => {
+        document.getElementById("navbar-container").innerHTML = data;
+
+        // Active menu
+        const menuLinks = document.querySelectorAll(".menu a");
+        menuLinks.forEach((link) => {
+          if (link.getAttribute("href") === currentPage) {
+            link.classList.add("active");
+          } else {
+            link.classList.remove("active");
+          }
+        });
+
+        // Profile dropdown + ออกจากระบบ (รวมศูนย์ไว้ที่ navbar-account.js ให้ทำงานเหมือนกันทุกหน้า)
+        if (window.initNavbarAccount) window.initNavbarAccount();
+        if (window.initBackButton) window.initBackButton('/home');
+
+        // ✅ Dark Mode (ใช้ theme.js ที่ใช้ร่วมกันทุกหน้า เพื่อ sync ไอคอนให้ตรง)
+        if (window.applyTheme) window.applyTheme(localStorage.getItem("theme") || "light");
+
+        // โหลด search.js หลังจาก navbar โหลดเสร็จ
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "js/search.js";
+        document.body.appendChild(script);
+
+        // โหลด chatbot.js
+          const s = document.createElement("script");
+          s.src = "/js/chatbot.js";
+          s.defer = true;
+          s.onload = () => {
+            if (window.bootChatbot) window.bootChatbot();
+          };
+          document.body.appendChild(s);
+      });
+
+    function renderCart() {
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const container = document.getElementById("cart-container");
+      const checkoutWrap = document.getElementById("checkout-btn-wrap");
+
+      if (cart.length === 0) {
+        container.innerHTML =
+          "<p class='text-center text-gray-600 mt-4'>ไม่มีสินค้าในตะกร้า</p>";
+        if (checkoutWrap) checkoutWrap.style.display = "none";
+        return;
+      }
+      if (checkoutWrap) checkoutWrap.style.display = "flex";
+
+      let html = "";
+      cart.forEach((item, index) => {
+        html += `
+          <div class="flex items-center border-b pb-4 gap-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-150">
+            <input type="checkbox" class="w-5 h-5 mt-2" checked data-index="${index}">
+            <img src="${item.Image}" alt="${item.title}" class="w-28 h-36 object-cover rounded shadow">
+            <div class="flex-1">
+              <h2 class="font-bold text-lg">${item.title}</h2>
+              <p class="text-gray-700 font-medium mt-1">฿ ${item.price} บาท</p>
+            </div>
+            <button onclick="removeItem(${item.id})" class="flex items-center px-3 py-1 border rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150">
+              <i class="fas fa-trash mr-2"></i> ลบ
+            </button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function removeItem(id) {
+      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      cart = cart.filter((item) => item.id !== id);
+      localStorage.setItem("cart", JSON.stringify(cart));
+      if (window.AccountSync) window.AccountSync.syncCartRemove(id);
+      renderCart();
+    }
+
+    function goToCheckout() {
+      const checkboxes = document.querySelectorAll(
+        'input[type="checkbox"]:checked'
+      );
+      if (checkboxes.length === 0) {
+        showToast("กรุณาเลือกสินค้าที่ต้องการชำระเงิน", "error");
+        return;
+      }
+
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const selectedItems = [];
+
+      checkboxes.forEach((cb) => {
+        const index = cb.dataset.index;
+        if (cart[index]) {
+          selectedItems.push(cart[index]);
+        }
+      });
+
+      localStorage.setItem("selectedForPayment", JSON.stringify(selectedItems));
+      window.location.href = "/payment";
+    }
+
+    renderCart();
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+</body>
+
+</html>

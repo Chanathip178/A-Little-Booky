@@ -1,0 +1,326 @@
+<!-- pre-login.html -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>หน้าก่อนเข้าสู่ระบบ</title>
+  <script src="/js/toast.js"></script>
+  <script src="/js/account-sync.js"></script>
+  <style>
+    body {
+      font-family: "Kanit", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fafafa;
+    }
+
+    /* Banner */
+    .banner {
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      margin: 30px auto;
+      overflow: hidden;
+    }
+
+    .slides {
+      display: flex;
+      transition: transform 0.5s ease-in-out;
+    }
+
+    .slide {
+      flex: 0 0 calc(33.33% - 20px);
+      margin: 0 10px;
+      box-sizing: border-box;
+      position: relative;
+      text-align: center;
+      color: white;
+    }
+
+    .slide img {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 10px;
+      filter: brightness(75%);
+    }
+
+    .slide h2 {
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 18px;
+    }
+
+    /* ปุ่มเลื่อน */
+    .banner button {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 20px;
+      z-index: 10;
+      border-radius: 50%;
+    }
+    .banner button.prev { left: 0; }
+    .banner button.next { right: 0; }
+
+    /* การ์ดทดลองอ่าน (Grid) */
+    .preview-container {
+      padding: 20px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+    }
+
+    .card-body {
+      padding: 10px;
+      text-align: center;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+
+    .card-author {
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* ---------------- Modal สวยใหญ่ ---------------- */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      backdrop-filter: blur(6px);
+      background-color: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background-color: #fff8ff;
+      border-radius: 16px;
+      padding: 30px 25px;
+      width: 100%;
+      max-width: 900px;
+      height: 70vh; /* สูงเกินครึ่งหน้าจอ */
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+      animation: modalFadeIn 0.4s ease-out;
+      font-family: "Kanit", sans-serif;
+      line-height: 1.7;
+      color: #333;
+    }
+
+    #modalTitle {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-align: center;
+      color: #6b21a8;
+    }
+
+    #modalText {
+      font-size: 18px;
+      color: #444;
+      white-space: pre-line;
+      padding: 10px 0;
+    }
+
+    /* ข้อความสมัครสมาชิก */
+    #modalText::after {
+      content: "\A\-------- สมัครสมาชิกเพื่ออ่านต่อ --------";
+      white-space: pre-line;
+      color: #999;
+      font-size: 16px;
+      display: block;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #b91c1c;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .modal-close:hover {
+      color: #f87171;
+      transform: scale(1.2);
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(-30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scrollbar */
+    .modal-content::-webkit-scrollbar {
+      width: 8px;
+    }
+    .modal-content::-webkit-scrollbar-thumb {
+      background-color: rgba(107,33,168,0.5);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <!-- ✅ Banner -->
+  <div class="banner">
+    <div class="slides" id="slides"></div>
+    <button class="prev" onclick="prevSlide()">❮</button>
+    <button class="next" onclick="nextSlide()">❯</button>
+  </div>
+
+  <!-- ✅ Novel Previews -->
+  <div class="preview-container">
+    <h2 style="text-align:center;">📖 นิยายทดลองอ่าน</h2>
+    <div class="card-grid" id="preview-list"></div>
+  </div>
+
+  <!-- Modal -->
+  <div id="novelModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" id="modalClose">&times;</span>
+      <h2 id="modalTitle" class="text-2xl font-bold mb-4"></h2>
+      <div id="modalText" class="text-gray-700 leading-relaxed max-h-[400px] overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <script>
+    // โหลด Navbar
+    fetch("/navbar")
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("navbar-container").innerHTML = data;
+        const script = document.createElement("script");
+        script.src = "/js/modal.js";
+        document.body.appendChild(script);
+      });
+      
+    // โหลดข้อมูลจาก novels-test.json
+    fetch("/novels-test.json")
+      .then(res => res.json())
+      .then(data => {
+        const slidesContainer = document.getElementById("slides");
+        const previewList = document.getElementById("preview-list");
+
+        data.novelPreviews.forEach(novel => {
+          // --- Banner ---
+          const slide = document.createElement("div");
+          slide.className = "slide";
+          slide.innerHTML = `
+            <img src="${novel.coverImage}" alt="${novel.title}">
+            <h2>${novel.title}</h2>
+          `;
+          slidesContainer.appendChild(slide);
+
+          // --- Card Grid ---
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <img src="${novel.coverImage}" alt="${novel.title}">
+            <div class="card-body">
+              <div class="card-title">${novel.title}</div>
+              <div class="card-author">${novel.author}</div>
+            </div>
+          `;
+          previewList.appendChild(card);
+
+          // --- เพิ่ม event คลิกการ์ด ---
+          card.addEventListener("click", () => {
+            openModal(novel.title, novel.sampleChapter);
+          });
+        });
+      });
+
+    // --- Slide Logic ---
+    let currentIndex = 0;
+    function showSlide(index) {
+      const slides = document.getElementById("slides");
+      const totalSlides = slides.children.length;
+      const visible = 3;
+      if (index > totalSlides - visible) currentIndex = 0;
+      else if (index < 0) currentIndex = totalSlides - visible;
+      else currentIndex = index;
+      slides.style.transform = `translateX(-${currentIndex * (100/visible + (6/visible))}%)`;
+    }
+    function nextSlide() { showSlide(currentIndex + 1); }
+    function prevSlide() { showSlide(currentIndex - 1); }
+
+    // Auto play
+    setInterval(nextSlide, 4000);
+
+    // --- Modal Functions ---
+    const modal = document.getElementById("novelModal");
+    const modalCloseBtn = document.getElementById("modalClose");
+
+    function openModal(title, text) {
+      document.getElementById("modalTitle").innerText = title;
+      document.getElementById("modalText").innerText = text;
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+    }
+
+    // ปิด modal เมื่อคลิก ×
+    modalCloseBtn.addEventListener("click", closeModal);
+
+    // ปิด modal เมื่อคลิกรอบนอก
+    window.onclick = function(event) {
+      if (event.target === modal) {
+        closeModal();
+      }
+    }
+  </script>
+</body>
+</html>

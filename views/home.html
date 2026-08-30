@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Home</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="/js/theme.js"></script>
+  <script src="/js/navbar-account.js"></script>
+  <script src="/js/back-button.js"></script>
+  <style>
+    body {
+      font-family: "Kanit", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fafafa;
+      color: #333;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background: #1e1e1e;
+      color: #e0e0e0;
+    }
+
+    #navbar-container { margin-bottom: 20px; }
+    .container { padding: 20px; }
+    h1 { text-align: center; margin-bottom: 30px; }
+
+    h2 {
+      margin: 34px 0 16px;
+      font-size: 22px;
+      font-weight: 700;
+      color: #444;
+      position: relative;
+      padding-left: 12px;
+      border-left: 4px solid #d633f9;
+    }
+
+    body.dark h2 {
+      color: #e0e0e0;
+    }
+
+    /* === แนวนอน แบบลากเลื่อน === */
+    .card-grid {
+      display: flex;
+      gap: 18px;
+      overflow-x: auto;
+      padding: 4px 4px 14px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;     /* Firefox */
+      -ms-overflow-style: none;  /* IE/Edge */
+      cursor: grab;
+    }
+    .card-grid::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+
+    .card {
+      flex: 0 0 auto;
+      width: 180px;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.3s, color 0.3s;
+      cursor: pointer;
+      scroll-snap-align: start;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.16);
+    }
+    .card .card-img-wrap { overflow: hidden; }
+    .card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.35s ease;
+    }
+    .card:hover img { transform: scale(1.06); }
+    .card-body { padding: 12px 14px 14px; text-align: center; }
+    .card-title {
+      font-size: 15px;
+      font-weight: bold;
+      margin: 5px 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      min-height: 2.6em;
+    }
+    .card-author { font-size: 13px; color: #666; }
+
+    /* Dark mode styles */
+    body.dark .card {
+      background: #2a2a2a;
+      color: #e0e0e0;
+    }
+    body.dark .card-author {
+      color: #bbb;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-container"></div>
+  <div class="container">
+    <h1>📚 ยินดีต้อนรับสู่ A Little Booky</h1>
+    <div id="novel-categories"></div>
+  </div>
+
+  <script>
+    const currentPage = window.location.pathname;
+
+    // โหลด navbar
+    fetch("/navbar-main")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("navbar-container").innerHTML = data;
+
+        // active menu
+        const menuLinks = document.querySelectorAll(".menu a");
+        menuLinks.forEach(link => {
+          if (link.getAttribute("href") === currentPage) {
+            link.classList.add("active");
+          } else {
+            link.classList.remove("active");
+          }
+        });
+
+        // dropdown โปรไฟล์ + ออกจากระบบ (รวมศูนย์ไว้ที่ navbar-account.js ให้ทำงานเหมือนกันทุกหน้า)
+        if (window.initNavbarAccount) window.initNavbarAccount();
+        if (window.initBackButton) window.initBackButton('/home');
+
+        // ✅ Theme Toggle (ใช้ theme.js ที่ใช้ร่วมกันทุกหน้า)
+        if (window.applyTheme) window.applyTheme(localStorage.getItem("theme") || "light");
+
+        // โหลด search.js หลังจาก navbar โหลดเสร็จ
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "js/search.js";
+        document.body.appendChild(script);
+
+        // โหลด chatbot.js
+          const s = document.createElement("script");
+          s.src = "/js/chatbot.js";
+          s.defer = true;
+          s.onload = () => {
+            if (window.bootChatbot) window.bootChatbot();
+          };
+          document.body.appendChild(s);
+      });
+
+    // === ฟังก์ชัน Drag Scroll ===
+    function enableDragScroll(container) {
+      let isDown = false;
+      let startX;
+      let scrollLeft;
+
+      container.addEventListener("mousedown", (e) => {
+        isDown = true;
+        startX = e.pageX - container.offsetLeft;
+        scrollLeft = container.scrollLeft;
+        container.style.cursor = "grabbing";
+      });
+      container.addEventListener("mouseleave", () => {
+        isDown = false;
+        container.style.cursor = "grab";
+      });
+      container.addEventListener("mouseup", () => {
+        isDown = false;
+        container.style.cursor = "grab";
+      });
+      container.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX) * 2; // ปรับความเร็วเลื่อน
+        container.scrollLeft = scrollLeft - walk;
+      });
+    }
+
+    // โหลดข้อมูลนิยาย
+    fetch("/api/shop/books")
+      .then(res => res.json())
+      .then(data => {
+        const categoriesContainer = document.getElementById("novel-categories");
+        const categories = {};
+
+        data.novels.forEach(novel => {
+          if (!categories[novel.category]) categories[novel.category] = [];
+          categories[novel.category].push(novel);
+        });
+
+        // ✅ จัดเรียงให้ "ฟรี" อยู่บนสุด
+        const sortedCategories = Object.keys(categories).sort((a, b) => {
+          if (a === "ฟรี") return -1;
+          if (b === "ฟรี") return 1;
+          return a.localeCompare(b);
+        });
+
+        sortedCategories.forEach(cat => {
+          const catDiv = document.createElement("div");
+          const catTitle = document.createElement("h2");
+          catTitle.textContent = cat;
+          catDiv.appendChild(catTitle);
+
+          const cardGrid = document.createElement("div");
+          cardGrid.className = "card-grid";
+          enableDragScroll(cardGrid); // ✅ เพิ่ม drag-scroll ให้แต่ละ grid
+
+          categories[cat].forEach(novel => {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+              <img src="${novel.Image}" alt="${novel.title}">
+              <div class="card-body">
+                <div class="card-title">${novel.title}</div>
+                <div class="card-author">${novel.author}</div>
+              </div>
+            `;
+            card.addEventListener("click", () => {
+              let history = JSON.parse(localStorage.getItem("readingHistory")) || [];
+              if (!history.find(item => item.id === novel.id)) {
+                history.push(novel);
+                localStorage.setItem("readingHistory", JSON.stringify(history));
+              }
+              window.location.href = "/detail?id=" + novel.id;
+            });
+            cardGrid.appendChild(card);
+          });
+
+          catDiv.appendChild(cardGrid);
+          categoriesContainer.appendChild(catDiv);
+        });
+      });
+  </script>
+</body>
+</html>

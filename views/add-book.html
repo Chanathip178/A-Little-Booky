@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Writing - Add New Book</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="/js/theme.js"></script>
+  <script src="/js/navbar-account.js"></script>
+  <script src="/js/back-button.js"></script>
+  <script src="/js/toast.js"></script>
+  <style>
+    /* ให้พื้นหลัง dark mode เหมือนหน้า Home เป๊ะๆ */
+    body, html {
+      font-family: "Kanit", sans-serif !important;
+      transition: background 0.3s, color 0.3s;
+    }
+    body:not(.dark), html:not(.dark) body {
+      background: #fafafa !important;
+    }
+    body.dark, html.dark body {
+      background: #1e1e1e !important;
+      color: #e0e0e0 !important;
+    }
+
+    body.dark input, body.dark textarea {
+    color: #000;
+    }
+  </style>
+</head>
+
+<body class="font-sans bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <!-- Navbar -->
+  <div id="navbar-container"></div>
+
+  <!-- Content -->
+  <div class="p-6 max-w-4xl mx-auto">
+    <!-- หัวข้อ -->
+    <h1 class="text-center text-2xl font-bold mb-2">Add New Book</h1>
+    <hr class="border-t-2 border-white w-4/5 mx-auto mb-8">
+
+    <form id="add-book-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- ชื่อหนังสือ -->
+      <div>
+        <label class="block font-bold mb-1">ชื่อหนังสือ</label>
+        <input id="book-title" type="text"
+          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100">
+      </div>
+
+      <!-- ราคา E-book -->
+      <div>
+        <label class="block font-bold mb-1">ราคา E-book</label>
+        <input id="book-price" type="number"
+          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100">
+      </div>
+
+      <!-- ชื่อผู้แต่ง -->
+      <div>
+        <label class="block font-bold mb-1">ชื่อผู้แต่ง</label>
+        <input id="book-author" type="text"
+          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100">
+      </div>
+
+      <!-- หมวดหนังสือ -->
+      <div>
+        <label class="block font-bold mb-1">หมวดหนังสือ</label>
+        <select id="book-category"
+          class="w-full border rounded-lg px-3 py-2 bg-gray-100 dark:bg-black border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-fuchsia-300">
+          <option value="" disabled selected>-- เลือกหมวด --</option>
+          <option value="แอ็คชัน">แอ็คชัน</option>
+          <option value="โรแมนซ์">โรแมนซ์</option>
+          <option value="ลึกลับ">ลึกลับ</option>
+          <option value="สยองขวัญ">สยองขวัญ</option>
+          <option value="แฟนตาซี">แฟนตาซี</option>
+          <option value="ดราม่า">ดราม่า</option>
+        </select>
+      </div>
+
+      <!-- ปกหนังสือ -->
+      <div>
+        <label class="block font-bold mb-1">ปกหนังสือ</label>
+        <label
+          class="cursor-pointer inline-block bg-fuchsia-200 hover:bg-fuchsia-300 text-gray-700 dark:bg-fuchsia-600 dark:hover:bg-fuchsia-500 dark:text-gray-100 font-medium py-2 px-4 rounded-full shadow-sm hover:shadow transition-all duration-200">
+          เลือกไฟล์
+          <input id="book-cover" type="file" class="hidden">
+        </label>
+      </div>
+
+      <!-- คำโปรยหนังสือ -->
+      <div>
+        <label class="block font-bold mb-1">คำโปรยหนังสือ</label>
+        <textarea id="book-desc" rows="3"
+          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"></textarea>
+      </div>
+
+      <!-- กรอกเนื้อหา -->
+      <div class="md:col-span-2">
+        <label class="block font-bold mb-1">เนื้อหานิยาย</label>
+        <textarea id="book-content" rows="6"
+          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-300 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"></textarea>
+      </div>
+
+      <!-- ปุ่ม -->
+      <div class="md:col-span-2 flex justify-center">
+        <button type="submit"
+          class="text-white font-bold px-8 py-2.5 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-600 hover:to-pink-600 shadow-md hover:shadow-lg transition-all duration-200">
+          เพิ่มนิยาย
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // โหลด Navbar
+    fetch("/navbar-main")
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("navbar-container").innerHTML = data;
+        if (window.applyTheme) window.applyTheme(localStorage.getItem("theme") || "light");
+
+        // Profile dropdown + ออกจากระบบ
+        if (window.initNavbarAccount) window.initNavbarAccount();
+        if (window.initBackButton) window.initBackButton('/writing');
+
+        // โหลด search.js หลังจาก navbar โหลดเสร็จ
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "js/search.js";
+        document.body.appendChild(script);
+
+        // โหลด chatbot.js
+          const s = document.createElement("script");
+          s.src = "/js/chatbot.js";
+          s.defer = true;
+          s.onload = () => {
+            if (window.bootChatbot) window.bootChatbot();
+          };
+          document.body.appendChild(s);
+      });
+
+
+    // ===== Form Handling =====
+    const form = document.getElementById("add-book-form");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById("book-title").value;
+      const author = document.getElementById("book-author").value;
+      const price = document.getElementById("book-price").value;
+      const category = document.getElementById("book-category").value;
+      const desc = document.getElementById("book-desc").value;
+      const content = document.getElementById("book-content").value;
+      const coverInput = document.getElementById("book-cover");
+
+      if (!title.trim()) {
+        showToast("กรุณากรอกชื่อหนังสือ", "error");
+        return;
+      }
+      if (!coverInput.files[0]) {
+        showToast("กรุณาเลือกปกหนังสือก่อน", "error");
+        return;
+      }
+
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("author", author);
+      formData.append("price", price);
+      formData.append("category", category);
+      formData.append("desc", desc);
+      formData.append("content", content);
+      formData.append("cover", coverInput.files[0]);
+      if (user && user.id) formData.append("ownerId", user.id);
+
+      const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const res = await fetch("/api/shop/books", { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+          showToast("บันทึกนิยายเรียบร้อย!", "success");
+          setTimeout(() => { window.location.href = "/writing"; }, 700);
+        } else {
+          showToast(data.message || "บันทึกไม่สำเร็จ กรุณาลองใหม่", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        showToast("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่", "error");
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+
+</html>
